@@ -1,0 +1,681 @@
+/* ============================================
+   数学气球射手 - 100以内加减乘除口算练习 样式表
+   ============================================ */
+
+/* ========== 全局重置 ========== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ========== 页面主体：天空渐变背景 ========== */
+body {
+    font-family: 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+/* ========== 游戏主容器 ========== */
+.game-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100vh;
+}
+
+/* ========== 顶部标题栏 ========== */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 5px;
+    padding: 8px 15px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 游戏标题样式 */
+.game-title {
+    color: #00ACC1;
+    font-size: 1.8em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 用户信息显示区域 */
+.user-info {
+    font-size: 1.2em;
+    color: #333;
+}
+
+/* ========== 主内容区域（排行榜+游戏区+侧边栏） ========== */
+.main-content {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+}
+
+/* 左侧：得分排行榜面板 */
+.leaderboard-panel {
+    width: 220px;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid #e0e0e0;
+    padding-right: 10px;
+}
+
+/* 游戏区域：包含Canvas、控制按钮、漏接指示器 */
+.game-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-width: 0;
+}
+
+/* ========== 游戏左上角：当前用户本次得分显示 ========== */
+.current-score-display {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 8px 16px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+}
+
+.current-score-display .score-label {
+    font-size: 14px;
+    color: #666;
+    font-weight: bold;
+}
+
+.current-score-display .score-value {
+    font-size: 28px;
+    color: #FF6B6B;
+    font-weight: bold;
+}
+
+/* ========== 漏接气球红叉指示器（右上角） ========== */
+.missed-indicators {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+/* 单个红叉样式：默认隐藏，漏接时显示 */
+.missed-x {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: bold;
+    color: #f44336;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.3s ease;
+}
+
+/* 红叉显示动画 */
+.missed-x.show {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* ========== 游戏画布 ========== */
+#gameCanvas {
+    background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: block;
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    object-fit: fill;
+}
+
+/* ========== 游戏控制区域 ========== */
+.controls {
+    display: flex;
+    gap: 15px;
+    padding: 10px 0;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 隐藏输入框（仅用于捕获键盘输入） */
+#wordInput {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 当前输入显示（在Canvas上方显示用户正在输入的单词） */
+.typing-display {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px 30px;
+    border-radius: 25px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+    font-size: 28px;
+    font-weight: bold;
+    color: #333;
+    min-width: 200px;
+    text-align: center;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+}
+
+.typing-display.error {
+    background: rgba(244, 67, 54, 0.9);
+    color: #fff;
+    animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(-50%); }
+    25% { transform: translateX(calc(-50% - 5px)); }
+    75% { transform: translateX(calc(-50% + 5px)); }
+}
+
+/* 通用按钮样式 */
+button {
+    padding: 12px 20px;
+    font-size: 1em;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+}
+
+/* 射击按钮：绿色 */
+#shootBtn {
+    background: #4CAF50;
+    color: white;
+}
+
+#shootBtn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+}
+
+/* 新游戏按钮：蓝色 */
+#newGameBtn {
+    background: #2196F3;
+    color: white;
+}
+
+#newGameBtn:hover {
+    background: #1976D2;
+    transform: translateY(-2px);
+}
+
+/* 暂停按钮：橙色 */
+#pauseBtn {
+    background: #FF9800;
+    color: white;
+}
+
+#pauseBtn:hover {
+    background: #F57C00;
+    transform: translateY(-2px);
+}
+
+/* 结束游戏按钮：红色 */
+#endGameBtn {
+    background: #f44336;
+    color: white;
+}
+
+#endGameBtn:hover {
+    background: #d32f2f;
+    transform: translateY(-2px);
+}
+
+/* 操作提示文字 */
+.hint {
+    color: #666;
+    font-style: italic;
+    font-size: 0.9em;
+    text-align: center;
+}
+
+/* 发音选项复选框 */
+.sound-options {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin: 8px 0;
+}
+
+.sound-option {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: #555;
+    cursor: pointer;
+    user-select: none;
+}
+
+.sound-option input[type="checkbox"] {
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+    accent-color: #4CAF50;
+}
+
+/* 运算选择复选框 */
+.op-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 10px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    margin: 4px 0;
+}
+
+.op-title {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 2px;
+}
+
+.op-selector .sound-option {
+    font-size: 13px;
+}
+
+.op-selector .sound-option input[type="checkbox"] {
+    accent-color: #00ACC1;
+}
+
+/* ========== 底部控制区 ========== */
+.bottom-controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 10px 0;
+    gap: 8px;
+}
+
+/* ========== 右侧边栏 ========== */
+.sidebar {
+    width: 220px;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ========== 底部控制区 ========== */
+.bottom-controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 10px 0;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* ========== 排行榜面板 ========== */
+.leaderboard {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    height: 100%;
+}
+
+.leaderboard h3 {
+    color: #FF6B6B;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 1.5em;
+}
+
+.leaderboard-list {
+    list-style: none;
+}
+
+/* 排行榜每一项 */
+.leaderboard-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 10px;
+    margin: 5px 0;
+    background: #f5f5f5;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+.leaderboard-item:hover {
+    background: #e0e0e0;
+}
+
+/* 当前登录用户高亮 */
+.leaderboard-item.current-user {
+    background: #FFE0B2;
+    font-weight: bold;
+}
+
+.leaderboard-rank {
+    color: #FF9800;
+    font-weight: bold;
+    min-width: 30px;
+}
+
+.leaderboard-name {
+    flex: 1;
+    margin: 0 10px;
+    color: #333;
+}
+
+.leaderboard-score {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+/* ========== 游戏统计面板 ========== */
+.stats {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stats-item {
+    display: flex;
+    justify-content: space-between;
+    margin: 8px 0;
+    font-size: 1.1em;
+}
+
+.stats-label {
+    color: #666;
+}
+
+.stats-value {
+    color: #FF6B6B;
+    font-weight: bold;
+}
+
+/* ========== 模态框（登录/注册/年级选择） ========== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.modal-title {
+    color: #FF6B6B;
+    margin-bottom: 20px;
+    font-size: 1.8em;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #333;
+    font-weight: bold;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 1em;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+    border-color: #4CAF50;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.modal-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+.modal-btn-primary {
+    background: #4CAF50;
+    color: white;
+}
+
+.modal-btn-primary:hover {
+    background: #45a049;
+}
+
+.modal-btn-secondary {
+    background: #f5f5f5;
+    color: #333;
+}
+
+.modal-btn-secondary:hover {
+    background: #e0e0e0;
+}
+
+/* 错误提示文字 */
+.error-message {
+    color: #f44336;
+    font-size: 0.9em;
+    margin-top: 5px;
+    display: none;
+}
+
+/* 切换用户按钮 */
+.switch-user-btn {
+    background: #9C27B0;
+    color: white;
+    margin-left: 10px;
+}
+
+.switch-user-btn:hover {
+    background: #7B1FA2;
+    transform: translateY(-2px);
+}
+
+/* ========== 年级选择按钮网格 ========== */
+.grade-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.grade-btn {
+    padding: 15px 10px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+    color: #333;
+}
+
+.grade-btn:hover {
+    border-color: #4CAF50;
+    background: #E8F5E9;
+    transform: translateY(-2px);
+}
+
+/* 已选年级高亮 */
+.grade-btn.selected {
+    border-color: #4CAF50;
+    background: #4CAF50;
+    color: white;
+}
+
+/* ========== 游戏结束覆盖层 ========== */
+.game-over {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 999;
+    justify-content: center;
+    align-items: center;
+}
+
+.game-over-content {
+    background: white;
+    padding: 40px;
+    border-radius: 15px;
+    text-align: center;
+    max-width: 400px;
+}
+
+.game-over-title {
+    color: #f44336;
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+
+.game-over-stats {
+    margin: 20px 0;
+}
+
+.game-over-stat {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    font-size: 1.2em;
+}
+
+.game-over-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.game-over-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1em;
+}
+
+.retry-btn {
+    background: #4CAF50;
+    color: white;
+}
+
+.quit-btn {
+    background: #f44336;
+    color: white;
+}
+
+/* ========== 响应式适配 ========== */
+@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        min-width: 100%;
+    }
+    
+    .header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .game-title {
+        font-size: 2em;
+    }
+    
+    .controls {
+        flex-direction: column;
+    }
+    
+    .input-group {
+        width: 100%;
+    }
+    
+    .leaderboard-panel {
+        width: 100%;
+        min-width: 100%;
+        border-right: none;
+        border-bottom: 2px solid #e0e0e0;
+        padding-right: 0;
+        padding-bottom: 10px;
+    }
+    
+    .grade-selector {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

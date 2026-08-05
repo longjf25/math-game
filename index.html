@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 页面编码与视口设置 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="数学气球射手 - 儿童100以内加减乘除口算练习游戏，通过输入答案击破气球来学习数学">
+    <meta name="theme-color" content="#4DB6AC">
+    <title>数学气球射手 - 加减乘除口算练习</title>
+    <!-- 引入外部样式表 -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧮</text></svg>">
+</head>
+<body>
+    <!-- ========== 游戏主界面布局 ========== -->
+    <div class="game-container">
+        <!-- 顶部标题栏 -->
+        <div class="header">
+            <h1 class="game-title">🧮 数学气球射手</h1>
+            <div class="user-info">
+                <span id="currentUser">未登录</span>
+                <button id="switchUserBtn" class="switch-user-btn" style="display: none;">切换用户</button>
+            </div>
+        </div>
+        
+        <!-- 主内容区：左侧排行榜 + 中间游戏 + 右侧面板 -->
+        <div class="main-content">
+            <!-- 左侧：得分排行榜 -->
+            <div class="leaderboard-panel">
+                <div class="leaderboard">
+                    <h3>🏆 得分排行榜</h3>
+                    <ul class="leaderboard-list" id="leaderboardList">
+                        <li class="leaderboard-item">暂无数据</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="game-area">
+                <!-- 游戏左上角：当前用户本次得分 -->
+                <div class="current-score-display" id="currentScoreDisplay">
+                    <span class="score-label">本次得分</span>
+                    <span class="score-value" id="topLeftScore">0</span>
+                </div>
+                <!-- 漏接红叉指示器 -->
+                <div class="missed-indicators" id="missedIndicators">
+                    <div class="missed-x" id="missed1">✗</div>
+                    <div class="missed-x" id="missed2">✗</div>
+                    <div class="missed-x" id="missed3">✗</div>
+                </div>
+                <!-- 游戏画布 -->
+                <canvas id="gameCanvas" width="1600" height="700"></canvas>
+                
+                <!-- 当前输入显示 -->
+                <div class="typing-display" id="typingDisplay" style="display: none;"></div>
+            </div>
+            
+            <!-- 右侧面板：统计数据 + 底部控制 -->
+            <div class="sidebar">
+                <!-- 底部控制区 -->
+                <div class="bottom-controls">
+                    <div class="controls">
+                        <button id="newGameBtn" disabled>新游戏</button>
+                        <button id="endGameBtn" disabled>结束游戏</button>
+                        <button id="pauseBtn" disabled>暂停</button>
+                    </div>
+                    
+                    <div class="sound-options">
+                        <label class="sound-option">
+                            <input type="checkbox" id="spawnSoundCheck" checked> 题目生成发音
+                        </label>
+                        <label class="sound-option">
+                            <input type="checkbox" id="hitSoundCheck" checked> 答案命中发音
+                        </label>
+                    </div>
+                    
+                    <div class="op-selector">
+                        <span class="op-title">选择运算：</span>
+                        <label class="sound-option">
+                            <input type="checkbox" id="opAddCheck" checked> + 加法
+                        </label>
+                        <label class="sound-option">
+                            <input type="checkbox" id="opSubCheck" checked> - 减法
+                        </label>
+                        <label class="sound-option">
+                            <input type="checkbox" id="opMulCheck" checked> × 乘法
+                        </label>
+                        <label class="sound-option">
+                            <input type="checkbox" id="opDivCheck" checked> ÷ 除法
+                        </label>
+                    </div>
+                    
+                    <div class="hint">
+                        提示：看清气球上的算式，输入答案后按空格击破气球！输入错误有提示音。第三个气球落地时游戏结束。
+                    </div>
+                </div>
+                
+                <div class="stats">
+                    <div class="stats-item">
+                        <span class="stats-label">本次得分:</span>
+                        <span class="stats-value" id="currentScore">0</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">总得分:</span>
+                        <span class="stats-value" id="totalScore">0</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">击破题目:</span>
+                        <span class="stats-value" id="hitCount">0</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">漏接气球:</span>
+                        <span class="stats-value" id="missedCount">0/3</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">最大气球数:</span>
+                        <span class="stats-value" id="maxBalloons">3</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">当前难度:</span>
+                        <span class="stats-value" id="currentGrade">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ========== 登录/注册模态框 ========== -->
+    <div class="modal" id="authModal">
+        <div class="modal-content">
+            <h2 class="modal-title" id="modalTitle">登录</h2>
+            <!-- 登录表单 -->
+            <div id="loginForm">
+                <div class="form-group">
+                    <label for="loginUsername">用户名:</label>
+                    <input type="text" id="loginUsername" placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">密码:</label>
+                    <input type="password" id="loginPassword" placeholder="请输入密码">
+                </div>
+                <div class="error-message" id="loginError"></div>
+                <div class="modal-buttons">
+                    <button class="modal-btn modal-btn-primary" id="loginBtn">登录</button>
+                    <button class="modal-btn modal-btn-secondary" id="showRegisterBtn">注册</button>
+                </div>
+            </div>
+            <!-- 注册表单（默认隐藏） -->
+            <div id="registerForm" style="display: none;">
+                <div class="form-group">
+                    <label for="regUsername">用户名:</label>
+                    <input type="text" id="regUsername" placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">密码:</label>
+                    <input type="password" id="regPassword" placeholder="请输入密码（至少3位）">
+                </div>
+                <div class="form-group">
+                    <label for="regConfirm">确认密码:</label>
+                    <input type="password" id="regConfirm" placeholder="请再次输入密码">
+                </div>
+                <div class="error-message" id="registerError"></div>
+                <div class="modal-buttons">
+                    <button class="modal-btn modal-btn-primary" id="registerBtn">注册</button>
+                    <button class="modal-btn modal-btn-secondary" id="showLoginBtn">返回登录</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ========== 难度选择模态框 ========== -->
+    <div class="modal" id="gradeModal">
+        <div class="modal-content">
+            <h2 class="modal-title">选择练习难度</h2>
+            <p style="color: #666; margin-bottom: 15px;">请选择你要练习的口算难度：</p>
+            <div class="grade-selector" id="gradeSelector">
+                <button class="grade-btn" data-grade="easy">🟢 简单<br><small>100以内加减法</small></button>
+                <button class="grade-btn" data-grade="medium">🟡 中等<br><small>加减+乘法口诀</small></button>
+                <button class="grade-btn" data-grade="hard">🔴 困难<br><small>四则混合运算</small></button>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" id="startGameBtn" disabled>开始游戏</button>
+                <button class="modal-btn modal-btn-secondary" id="cancelGradeBtn">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ========== 游戏结束界面 ========== -->
+    <div class="game-over" id="gameOver">
+        <div class="game-over-content">
+            <h2 class="game-over-title">游戏结束！</h2>
+            <div class="game-over-stats">
+                <div class="game-over-stat">
+                    <span>本次得分:</span>
+                    <span id="finalScore" style="color: #4CAF50; font-weight: bold;">0</span>
+                </div>
+                <div class="game-over-stat">
+                    <span>击破题目:</span>
+                    <span id="finalHits" style="color: #2196F3; font-weight: bold;">0</span>
+                </div>
+                <div class="game-over-stat">
+                    <span>总得分:</span>
+                    <span id="finalTotalScore" style="color: #FF9800; font-weight: bold;">0</span>
+                </div>
+            </div>
+            <div class="game-over-buttons">
+                <button class="game-over-btn retry-btn" id="retryBtn">再来一局</button>
+                <button class="game-over-btn quit-btn" id="quitBtn">退出游戏</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隐藏输入框（用于捕获键盘输入） -->
+    <input type="text" id="wordInput" style="position:absolute;left:-9999px;opacity:0;" tabindex="-1">
+    
+    <script>
+        // ==================== 游戏配置常量 ====================
+        const CONFIG = {
+            canvasWidth: 1600,           // 画布宽度
+            canvasHeight: 700,           // 画布高度
+            initialMaxBalloons: 3,       // 初始最大气球数（前2分钟）
+            initialSpeed: 0.2,           // 气球初始下落速度（像素/帧）
+            speedIncrement: 0.05,        // 每级速度增量
+            wordsPerLevel: 20,           // 每击破20题提升一级速度
+            maxMissed: 3,                // 最大允许漏接气球数
+            spawnIntervalMin: 1500,      // 气球生成最小间隔（毫秒）
+            spawnIntervalMax: 2500,      // 气球生成最大间隔（毫秒）
+            particleCount: 10,           // 击破时粒子数量
+            particleLifetime: 500,       // 粒子存活时间（毫秒）
+            colors: ['#4DB6AC', '#80CBC4', '#64B5F6', '#4FC3F7', '#7986CB', '#9575CD', '#4DD0E1', '#81C784', '#AED581', '#FFB74D', '#FF8A65', '#F06292']  // 气球颜色池
+        };
+        
+        // 三档难度配置：数值上限与默认运算
+        const DIFFICULTY = {
+            easy:   { limit: 20,  defaultOps: ['add', 'sub'],         name: '简单' },
+            medium: { limit: 100, defaultOps: ['add', 'sub', 'mul'],  name: '中等' },
+            hard:   { limit: 100, defaultOps: ['add', 'sub', 'mul', 'div'], name: '困难' }
+        };
+        
+        // ==================== 全局变量 ====================
+        let canvas, ctx;                 // Canvas元素及其2D渲染上下文
+        let balloons = [];               // 当前屏幕上的气球数组
+        let particles = [];              // 粒子效果数组（击破气球时产生）
+        let arrows = [];                 // 箭数组（射击时飞出）
+        let petals = [];                 // 花瓣数组（天女散花特效）
+        let currentUser = null;          // 当前登录用户对象
+        let gameRunning = false;         // 游戏是否正在运行
+        let gamePaused = false;          // 游戏是否暂停
+        let currentScore = 0;            // 本次游戏得分
+        let hitCount = 0;                // 本次击破题目总数
+        let missedCount = 0;             // 本次漏接气球数
+        let currentSpeedLevel = 1;       // 当前速度等级
+        let gameStartTime = 0;           // 游戏开始时间戳
+        let animationId = null;          // requestAnimationFrame ID
+        let spawnIntervalId = null;      // 气球生成定时器 ID
+        let audioContext = null;         // Web Audio API 音频上下文
+        let bgmGainNode = null;          // 背景音乐增益节点
+        let bgmIntervalId = null;        // 背景音乐调度定时器 ID
+        let typedBuffer = '';            // 当前输入缓冲区
+        let selectedDifficulty = null;   // 当前选中的难度
+        let currentLimit = 100;          // 当前难度数值上限
+
+        // ==================== 题目生成器 ====================
+        function getSelectedOps() {
+            const ops = [];
+            if (document.getElementById('opAddCheck').checked) ops.push('add');
+            if (document.getElementById('opSubCheck').checked) ops.push('sub');
+            if (document.getElementById('opMulCheck').checked) ops.push('mul');
+            if (document.getElementById('opDivCheck').checked) ops.push('div');
+            return ops;
+        }
+        
+        function randInt(min, max) {
+            return min + Math.floor(Math.random() * (max - min + 1));
+        }
+        
+        /**
+         * 生成一道口算题
+         * 根据当前勾选的运算类型随机生成，返回 { text, answer, zhText, points }
+         * text: 画布显示的算式；zhText: 中文读题文本；points: 基础分值
+         */
+        function generateProblem() {
+            const ops = getSelectedOps();
+            if (ops.length === 0) return null;
+            
+            const op = ops[Math.floor(Math.random() * ops.length)];
+            const limit = currentLimit;
+            
+            switch (op) {
+                case 'add': {
+                    const a = randInt(1, Math.min(limit - 1, 99));
+                    const b = randInt(1, limit - a);
+                    const answer = a + b;
+                    return {
+                        text: `${a} + ${b}`,
+                        answer: answer,
+                        zhText: `${a}加${b}等于几`,
+                        points: 1
+                    };
+                }
+                case 'sub': {
+                    const a = randInt(1, Math.min(limit, 100));
+                    const b = randInt(1, a);
+                    const answer = a - b;
+                    return {
+                        text: `${a} - ${b}`,
+                        answer: answer,
+                        zhText: `${a}减${b}等于几`,
+                        points: 2
+                    };
+                }
+                case 'mul': {
+                    const a = randInt(2, 9);
+                    const b = randInt(2, 9);
+                    const answer = a * b;
+                    return {
+                        text: `${a} × ${b}`,
+                        answer: answer,
+                        zhText: `${a}乘${b}等于几`,
+                        points: 3
+                    };
+                }
+                case 'div': {
+                    const b = randInt(2, 9);
+                    const c = randInt(2, 9);
+                    const a = b * c;
+                    return {
+                        text: `${a} ÷ ${b}`,
+                        answer: c,
+                        zhText: `${a}除以${b}等于几`,
+                        points: 4
+                    };
+                }
+            }
+            return null;
+        }
+
+        // ==================== 初始化函数 ====================
+        function init() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.getVoices();
+                window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+            }
+            
+            // 初始化 Web Audio API 音频上下文（用于音效和BGM）
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.log('Web Audio API not supported');
+            }
+            
+            // 绑定游戏控制按钮事件
+            document.getElementById('newGameBtn').addEventListener('click', showGradeSelector);
+            document.getElementById('endGameBtn').addEventListener('click', endGame);
+            document.getElementById('pauseBtn').addEventListener('click', togglePause);
+            document.getElementById('switchUserBtn').addEventListener('click', switchUser);
+            
+            // 全局键盘事件：游戏进行时捕获数字输入
+            document.addEventListener('keydown', function(e) {
+                // 只在游戏运行且未暂停时响应
+                if (!gameRunning || gamePaused) return;
+                // 模态框打开时不响应
+                if (document.getElementById('authModal').style.display === 'flex' ||
+                    document.getElementById('gradeModal').style.display === 'flex' ||
+                    document.getElementById('gameOver').style.display === 'flex') return;
+                
+                // 数字键（含小键盘数字）
+                if (e.key.length === 1 && /[0-9]/.test(e.key)) {
+                    e.preventDefault();
+                    if (typedBuffer.length < 3) {
+                        typedBuffer += e.key;
+                    }
+                    updateTypingDisplay();
+                }
+                // 退格键
+                else if (e.key === 'Backspace') {
+                    e.preventDefault();
+                    typedBuffer = typedBuffer.slice(0, -1);
+                    updateTypingDisplay();
+                }
+                // 空格键或回车确认射击
+                else if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    shoot();
+                }
+            });
+            
+            // 绑定登录/注册模态框按钮事件
+            document.getElementById('loginBtn').addEventListener('click', login);
+            document.getElementById('registerBtn').addEventListener('click', register);
+            document.getElementById('showRegisterBtn').addEventListener('click', showRegisterForm);
+            document.getElementById('showLoginBtn').addEventListener('click', showLoginForm);
+            
+            // 绑定难度选择和游戏结束界面按钮事件
+            document.getElementById('startGameBtn').addEventListener('click', startGame);
+            document.getElementById('cancelGradeBtn').addEventListener('click', hideGradeSelector);
+            document.getElementById('retryBtn').addEventListener('click', retryGame);
+            document.getElementById('quitBtn').addEventListener('click', quitGame);
+            
+            // 绑定难度选择按钮点击事件：选中高亮并启用开始按钮
+            document.querySelectorAll('.grade-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedDifficulty = this.dataset.grade;
+                    document.getElementById('startGameBtn').disabled = false;
+                });
+            });
+            
+            // 检查本地存储是否有已登录用户
+            checkLoggedInUser();
+            // 如果未登录则显示登录/注册模态框
+            if (!currentUser) {
+                showAuthModal();
+            }
+        }
+
+        // ==================== 用户系统功能 ====================
+        
+        /**
+         * 检查本地存储中是否有已登录用户
+         * 使用 sessionStorage 实现关闭网页自动退出登录
+         */
+        async function checkLoggedInUser() {
+            const loggedInUser = sessionStorage.getItem('currentUser');
+            if (loggedInUser) {
+                try {
+                    const resp = await fetch('/api/auth?action=getUser', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: loggedInUser })
+                    });
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (data.user) {
+                            currentUser = data.user;
+                            updateUI();
+                            enableGameControls();
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('用户验证 API 失败:', e);
+                }
+                sessionStorage.removeItem('currentUser');
+            }
+        }
+
+        function showAuthModal() {
+            document.getElementById('authModal').style.display = 'flex';
+            document.getElementById('loginError').style.display = 'none';
+            document.getElementById('registerError').style.display = 'none';
+            showLoginForm();
+        }
+
+        function hideAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+        }
+
+        function showLoginForm() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('modalTitle').textContent = '登录';
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+
+        function showRegisterForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+            document.getElementById('modalTitle').textContent = '注册';
+            document.getElementById('regUsername').value = '';
+            document.getElementById('regPassword').value = '';
+            document.getElementById('regConfirm').value = '';
+        }
+
+        async function login() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!username || !password) {
+                showError('loginError', '请输入用户名和密码');
+                return;
+            }
+            
+            try {
+                const resp = await fetch('/api/auth?action=login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await resp.json();
+                
+                if (resp.ok && data.success) {
+                    currentUser = data.user;
+                    sessionStorage.setItem('currentUser', username);
+                    hideAuthModal();
+                    updateUI();
+                    enableGameControls();
+                    showGradeSelector();
+                } else {
+                    showError('loginError', data.error || '登录失败');
+                }
+            } catch (e) {
+                showError('loginError', '网络错误，请稍后重试');
+            }
+        }
+
+        async function register() {
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirm = document.getElementById('regConfirm').value;
+            
+            if (!username || !password || !confirm) {
+                showError('registerError', '请填写所有字段');
+                return;
+            }
+            
+            if (password.length < 3) {
+                showError('registerError', '密码至少需要3位');
+                return;
+            }
+            
+            if (password !== confirm) {
+                showError('registerError', '两次输入的密码不一致');
+                return;
+            }
+            
+            try {
+                const resp = await fetch('/api/auth?action=register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await resp.json();
+                
+                if (resp.ok && data.success) {
+                    currentUser = data.user;
+                    sessionStorage.setItem('currentUser', username);
+                    hideAuthModal();
+                    updateUI();
+                    enableGameControls();
+                    showGradeSelector();
+                } else {
+                    showError('registerError', data.error || '注册失败');
+                }
+            } catch (e) {
+                showError('registerError', '网络错误，请稍后重试');
+            }
+        }
+
+        function switchUser() {
+            if (gameRunning) {
+                if (!confirm('切换用户将结束当前游戏，是否继续？')) {
+                    return;
+                }
+                gameRunning = false;
+                gamePaused = false;
+                stopBGM();
+                if (animationId) cancelAnimationFrame(animationId);
+                if (spawnIntervalId) clearTimeout(spawnIntervalId);
+                balloons.forEach(b => b.speakTimer && clearTimeout(b.speakTimer));
+                balloons = [];
+                particles = [];
+                arrows = [];
+                petals = [];
+                typedBuffer = '';
+                document.getElementById('typingDisplay').style.display = 'none';
+            }
+            currentUser = null;
+            sessionStorage.removeItem('currentUser');
+            disableGameControls();
+            showAuthModal();
+        }
+
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+
+        function updateUI() {
+            if (currentUser) {
+                document.getElementById('currentUser').textContent = `当前用户: ${currentUser.username}`;
+                document.getElementById('switchUserBtn').style.display = 'inline-block';
+                document.getElementById('totalScore').textContent = currentUser.totalScore;
+            } else {
+                document.getElementById('currentUser').textContent = '未登录';
+                document.getElementById('switchUserBtn').style.display = 'none';
+                document.getElementById('totalScore').textContent = '0';
+            }
+            
+            updateLeaderboard();
+        }
+
+        function enableGameControls() {
+            document.getElementById('newGameBtn').disabled = false;
+            document.getElementById('endGameBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = false;
+        }
+
+        function disableGameControls() {
+            document.getElementById('newGameBtn').disabled = true;
+            document.getElementById('endGameBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = true;
+        }
+
+        // ==================== 难度选择功能 ====================
+        
+        function showGradeSelector() {
+            if (!currentUser) {
+                showAuthModal();
+                return;
+            }
+            document.getElementById('gradeModal').style.display = 'flex';
+            document.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('selected'));
+            selectedDifficulty = null;
+            document.getElementById('startGameBtn').disabled = true;
+        }
+
+        function hideGradeSelector() {
+            document.getElementById('gradeModal').style.display = 'none';
+        }
+
+        function startGame() {
+            if (!selectedDifficulty) return;
+            
+            // 检查是否至少选择了一种运算
+            if (getSelectedOps().length === 0) {
+                alert('请至少选择一种运算（加法/减法/乘法/除法）');
+                return;
+            }
+            
+            hideGradeSelector();
+            
+            currentLimit = DIFFICULTY[selectedDifficulty].limit;
+            // 按难度设置默认运算勾选
+            const defaultOps = DIFFICULTY[selectedDifficulty].defaultOps;
+            document.getElementById('opAddCheck').checked = defaultOps.includes('add');
+            document.getElementById('opSubCheck').checked = defaultOps.includes('sub');
+            document.getElementById('opMulCheck').checked = defaultOps.includes('mul');
+            document.getElementById('opDivCheck').checked = defaultOps.includes('div');
+            
+            document.getElementById('currentGrade').textContent = DIFFICULTY[selectedDifficulty].name;
+            
+            resetGameState();
+            enableGameControls();
+            
+            gameStartTime = Date.now();
+            scheduleBalloonSpawn();
+            gameLoop();
+            startBGM();
+            
+            document.getElementById('wordInput').value = '';
+            document.getElementById('wordInput').focus();
+        }
+
+        function resetGameState() {
+            balloons.forEach(b => b.speakTimer && clearTimeout(b.speakTimer));
+            
+            balloons = [];
+            particles = [];
+            currentScore = 0;
+            hitCount = 0;
+            missedCount = 0;
+            currentSpeedLevel = 1;
+            gameStartTime = 0;
+            gameRunning = true;
+            gamePaused = false;
+            typedBuffer = '';
+            
+            document.getElementById('currentScore').textContent = '0';
+            document.getElementById('topLeftScore').textContent = '0';
+            document.getElementById('hitCount').textContent = '0';
+            document.getElementById('missedCount').textContent = `0/${CONFIG.maxMissed}`;
+            document.getElementById('maxBalloons').textContent = CONFIG.initialMaxBalloons;
+            document.getElementById('pauseBtn').textContent = '暂停';
+            document.getElementById('typingDisplay').style.display = 'none';
+            
+            // 清除所有红叉标记
+            for (let i = 1; i <= CONFIG.maxMissed; i++) {
+                const missedEl = document.getElementById(`missed${i}`);
+                if (missedEl) missedEl.classList.remove('show');
+            }
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            if (spawnIntervalId) {
+                clearTimeout(spawnIntervalId);
+            }
+        }
+
+        // ==================== 游戏核心逻辑 ====================
+        
+        function togglePause() {
+            if (!gameRunning) return;
+            
+            gamePaused = !gamePaused;
+            document.getElementById('pauseBtn').textContent = gamePaused ? '继续' : '暂停';
+            
+            if (gamePaused) {
+                if (spawnIntervalId) {
+                    clearTimeout(spawnIntervalId);
+                }
+                stopBGM();
+            } else {
+                scheduleBalloonSpawn();
+                gameLoop();
+                startBGM();
+            }
+        }
+
+        function getMaxBalloons() {
+            if (!gameStartTime) return CONFIG.initialMaxBalloons;
+            const elapsedMinutes = (Date.now() - gameStartTime) / 60000;
+            return CONFIG.initialMaxBalloons + Math.floor(elapsedMinutes);
+        }
+
+        function scheduleBalloonSpawn() {
+            if (spawnIntervalId) {
+                clearTimeout(spawnIntervalId);
+            }
+            
+            const spawn = () => {
+                const maxBalloons = getMaxBalloons();
+                if (!gamePaused && gameRunning && balloons.length < maxBalloons) {
+                    spawnBalloon();
+                }
+                
+                const interval = CONFIG.spawnIntervalMin + 
+                    Math.random() * (CONFIG.spawnIntervalMax - CONFIG.spawnIntervalMin);
+                spawnIntervalId = setTimeout(spawn, interval);
+            };
+            
+            spawn();
+        }
+
+        /**
+         * 生成一个新气球
+         * 随机生成一道口算题，设置随机位置、速度、颜色
+         */
+        function spawnBalloon() {
+            const problem = generateProblem();
+            if (!problem) return;
+            
+            const x = 50 + Math.random() * (CONFIG.canvasWidth - 100);
+            const baseSpeed = CONFIG.initialSpeed + (currentSpeedLevel - 1) * CONFIG.speedIncrement;
+            const speed = baseSpeed + Math.random() * 0.3;
+            const color = CONFIG.colors[Math.floor(Math.random() * CONFIG.colors.length)];
+            
+            // 气球半径：根据算式长度适当增大
+            const baseRadius = 45;
+            const radius = baseRadius + Math.max(0, problem.text.length - 5) * 4;
+            
+            const balloon = {
+                id: Date.now() + Math.random(),
+                text: problem.text,
+                answer: problem.answer,
+                zhText: problem.zhText,
+                points: problem.points,
+                x: x,
+                y: -50,
+                speed: speed,
+                color: color,
+                radius: radius
+            };
+            
+            balloons.push(balloon);
+            
+            balloon.speakTimer = setTimeout(() => {
+                if (balloons.includes(balloon) && document.getElementById('spawnSoundCheck').checked) {
+                    speakChinese(balloon.zhText, true);
+                }
+            }, 1000);
+            
+            updateBalloonCount();
+        }
+
+        /**
+         * 处理射击操作
+         * 使用 typedBuffer 中的输入答案匹配气球算式
+         * 匹配成功则创建箭飞向气球，匹配失败则播放错误音效
+         */
+        function shoot() {
+            if (!typedBuffer) return;
+            
+            const inputAnswer = parseInt(typedBuffer, 10);
+            if (isNaN(inputAnswer)) {
+                typedBuffer = '';
+                updateTypingDisplay();
+                return;
+            }
+            
+            let matchedBalloon = null;
+            let lowestY = -1;
+            
+            // 查找匹配的气球，优先击破Y坐标最低（最靠近底部）的气球
+            for (let balloon of balloons) {
+                if (balloon.answer === inputAnswer && balloon.y > lowestY) {
+                    matchedBalloon = balloon;
+                    lowestY = balloon.y;
+                }
+            }
+            
+            if (matchedBalloon) {
+                createArrow(matchedBalloon);
+                typedBuffer = '';
+                updateTypingDisplay();
+            } else {
+                playErrorSound();
+                showTypingError();
+                // 自动清除错误输入，允许立即重新输入
+                typedBuffer = '';
+                updateTypingDisplay();
+            }
+        }
+
+        function updateTypingDisplay() {
+            const display = document.getElementById('typingDisplay');
+            if (typedBuffer.length > 0) {
+                display.style.display = 'block';
+                display.textContent = typedBuffer;
+                display.classList.remove('error');
+            } else {
+                display.style.display = 'none';
+            }
+        }
+
+        function showTypingError() {
+            const display = document.getElementById('typingDisplay');
+            display.classList.add('error');
+            setTimeout(() => {
+                display.classList.remove('error');
+            }, 300);
+        }
+
+        /**
+         * 击破气球处理
+         * 移除气球、计算得分、更新用户总分、播放音效、生成粒子特效、朗读答案
+         * @param {Object} balloon - 被击破的气球对象
+         */
+        function popBalloon(balloon) {
+            const index = balloons.findIndex(b => b.id === balloon.id);
+            if (index > -1) {
+                balloons.splice(index, 1);
+            }
+            
+            // 计分规则：基础分 + 答案数值越大额外加分（越难的分越高）
+            const points = balloon.points + Math.floor(Math.abs(balloon.answer) / 10);
+            currentScore += points;
+            hitCount++;
+            
+            document.getElementById('currentScore').textContent = currentScore;
+            document.getElementById('topLeftScore').textContent = currentScore;
+            document.getElementById('hitCount').textContent = hitCount;
+            
+            if (currentUser) {
+                currentUser.totalScore += points;
+                updateUserScore();
+            }
+            
+            // 每击破20题提升一级速度
+            if (hitCount > 0 && hitCount % CONFIG.wordsPerLevel === 0) {
+                currentSpeedLevel++;
+            }
+            
+            const currentMax = getMaxBalloons();
+            document.getElementById('maxBalloons').textContent = currentMax;
+            
+            if (balloon.speakTimer) {
+                clearTimeout(balloon.speakTimer);
+            }
+            
+            playPopSound();
+            if (document.getElementById('hitSoundCheck').checked) {
+                speakChinese(`等于${balloon.answer}`, false);
+            }
+            createParticles(balloon.x, balloon.y, balloon.color);
+            
+            updateBalloonCount();
+            updateLeaderboard();
+        }
+
+        async function updateUserScore() {
+            if (!currentUser) return;
+            
+            document.getElementById('totalScore').textContent = currentUser.totalScore;
+            
+            try {
+                await fetch('/api/auth?action=updateScore', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        username: currentUser.username, 
+                        totalScore: currentUser.totalScore 
+                    })
+                });
+            } catch (e) {
+                console.warn('分数同步失败:', e);
+            }
+        }
+
+        function balloonMissed() {
+            missedCount++;
+            document.getElementById('missedCount').textContent = `${missedCount}/${CONFIG.maxMissed}`;
+            
+            const missedEl = document.getElementById(`missed${missedCount}`);
+            if (missedEl) {
+                missedEl.classList.add('show');
+            }
+            
+            playMissSound();
+            
+            if (missedCount >= CONFIG.maxMissed) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            gameRunning = false;
+            gamePaused = false;
+            
+            stopBGM();
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            if (spawnIntervalId) {
+                clearTimeout(spawnIntervalId);
+            }
+            
+            balloons.forEach(b => b.speakTimer && clearTimeout(b.speakTimer));
+            
+            balloons = [];
+            particles = [];
+            arrows = [];
+            petals = [];
+            
+            // 保存本次游戏成绩到排行榜
+            saveGameScore();
+            
+            document.getElementById('finalScore').textContent = currentScore;
+            document.getElementById('finalHits').textContent = hitCount;
+            document.getElementById('finalTotalScore').textContent = currentUser ? currentUser.totalScore : 0;
+            document.getElementById('gameOver').style.display = 'flex';
+            
+            playGameOverSound();
+            
+            disableGameControls();
+        }
+
+        function retryGame() {
+            document.getElementById('gameOver').style.display = 'none';
+            showGradeSelector();
+        }
+
+        function quitGame() {
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('newGameBtn').disabled = false;
+            document.getElementById('endGameBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = true;
+        }
+
+        // ==================== 渲染和动画系统 ====================
+        
+        function gameLoop() {
+            if (!gameRunning || gamePaused) return;
+            
+            ctx.clearRect(0, 0, CONFIG.canvasWidth, CONFIG.canvasHeight);
+            
+            updateBalloons();
+            drawBalloons();
+            updateParticles();
+            drawParticles();
+            updateArrows();
+            drawArrows();
+            updatePetals();
+            drawPetals();
+            
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        function updateBalloons() {
+            for (let i = balloons.length - 1; i >= 0; i--) {
+                balloons[i].y += balloons[i].speed;
+                
+                if (balloons[i].y > CONFIG.canvasHeight + 50) {
+                    const escapedBalloon = balloons[i];
+                    if (escapedBalloon.speakTimer) {
+                        clearTimeout(escapedBalloon.speakTimer);
+                    }
+                    balloons.splice(i, 1);
+                    balloonMissed();
+                    updateBalloonCount();
+                }
+            }
+        }
+
+        /**
+         * 绘制所有气球
+         * 包括：椭圆主体、高光、绳子、算式（大字）、答案占位符
+         */
+        function drawBalloons() {
+            for (let balloon of balloons) {
+                const r = balloon.radius;
+                const x = balloon.x;
+                const y = balloon.y;
+                
+                const gradient = ctx.createRadialGradient(
+                    x - r * 0.3, y - r * 0.4, 0,
+                    x, y, r * 1.3
+                );
+                gradient.addColorStop(0, lightenColor(balloon.color, 40));
+                gradient.addColorStop(0.5, balloon.color);
+                gradient.addColorStop(1, darkenColor(balloon.color, 30));
+                
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+                ctx.shadowBlur = 15;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 8;
+                
+                ctx.beginPath();
+                ctx.ellipse(x, y, r, r * 1.2, 0, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.strokeStyle = darkenColor(balloon.color, 20);
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.shadowColor = 'transparent';
+                
+                ctx.beginPath();
+                ctx.ellipse(x - r * 0.25, y - r * 0.35, r * 0.25, r * 0.15, -0.5, 0, Math.PI * 2);
+                const highlightGradient = ctx.createLinearGradient(
+                    x - r * 0.5, y - r * 0.5,
+                    x, y
+                );
+                highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+                ctx.fillStyle = highlightGradient;
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.ellipse(x - r * 0.15, y - r * 0.2, r * 0.08, r * 0.05, -0.5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.fill();
+                
+                // 气球绳子
+                ctx.beginPath();
+                ctx.moveTo(x, y + r * 1.1);
+                ctx.bezierCurveTo(
+                    x - r * 0.3, y + r * 1.3 + 10,
+                    x + r * 0.3, y + r * 1.3 + 10,
+                    x, y + r * 1.1
+                );
+                ctx.bezierCurveTo(
+                    x - r * 0.1, y + r * 1.4 + 10,
+                    x + r * 0.1, y + r * 1.4 + 10,
+                    x, y + r * 1.1
+                );
+                ctx.strokeStyle = '#8B4513';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(x, y + r * 1.3);
+                ctx.lineTo(x, y + r * 1.3 + 25);
+                ctx.strokeStyle = darkenColor(balloon.color, 40);
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // 算式文本
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 5;
+                
+                ctx.font = 'bold 34px Arial';
+                ctx.fillStyle = '#fff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(balloon.text, x, y - 16);
+                
+                ctx.shadowColor = 'transparent';
+                
+                ctx.font = 'bold 26px Arial';
+                ctx.fillStyle = '#fff';
+                ctx.fillText('= ?', x, y + 24);
+            }
+        }
+        
+        function lightenColor(color, percent) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = Math.min(255, (num >> 16) + amt);
+            const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+            const B = Math.min(255, (num & 0x0000FF) + amt);
+            return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+        }
+        
+        function darkenColor(color, percent) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = Math.max(0, (num >> 16) - amt);
+            const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
+            const B = Math.max(0, (num & 0x0000FF) - amt);
+            return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+        }
+
+        function createParticles(x, y, color) {
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                const angle = (Math.PI * 2 * i) / CONFIG.particleCount;
+                const speed = 2 + Math.random() * 3;
+                
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: 3 + Math.random() * 3,
+                    color: color,
+                    life: CONFIG.particleLifetime,
+                    maxLife: CONFIG.particleLifetime
+                });
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].x += particles[i].vx;
+                particles[i].y += particles[i].vy;
+                particles[i].life -= 16;
+                
+                if (particles[i].life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawParticles() {
+            for (let particle of particles) {
+                const alpha = particle.life / particle.maxLife;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+                ctx.fillStyle = particle.color;
+                ctx.globalAlpha = alpha;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        const petalColors = [
+            { from: '#ff6b9d', to: '#feca57' },
+            { from: '#ff9a9e', to: '#fad0c4' },
+            { from: '#a18cd1', to: '#fbc2eb' },
+            { from: '#ffecd2', to: '#fcb69f' },
+            { from: '#e0c3fc', to: '#8ec5fc' },
+            { from: '#ffd89b', to: '#19547b' },
+            { from: '#ff758c', to: '#ff7eb3' },
+            { from: '#d4fc79', to: '#96e6a1' }
+        ];
+
+        class Petal {
+            constructor(x, y, vx, vy, size, colorFrom, colorTo) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.size = size;
+                this.colorFrom = colorFrom;
+                this.colorTo = colorTo;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.08;
+                this.life = 1;
+                this.decay = 0.004 + Math.random() * 0.004;
+                this.sway = Math.random() * Math.PI * 2;
+                this.swaySpeed = 0.02 + Math.random() * 0.02;
+            }
+
+            update() {
+                this.vy += 0.05;
+                this.vx *= 0.995;
+                this.sway += this.swaySpeed;
+                this.vx += Math.sin(this.sway) * 0.08;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.rotation += this.rotationSpeed;
+                this.life -= this.decay;
+            }
+
+            draw(ctx) {
+                if (this.life <= 0) return;
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                const gradient = ctx.createLinearGradient(-this.size, -this.size, this.size, this.size);
+                gradient.addColorStop(0, this.colorFrom);
+                gradient.addColorStop(1, this.colorTo);
+
+                ctx.fillStyle = gradient;
+                ctx.globalAlpha = this.life;
+
+                ctx.beginPath();
+                const s = this.size;
+                ctx.moveTo(0, -s);
+                ctx.bezierCurveTo(s/2, -s/2, s, 0, s/2, s/2);
+                ctx.bezierCurveTo(0, s, -s, s/2, -s/2, -s/2);
+                ctx.bezierCurveTo(-s, 0, -s/2, -s/2, 0, -s);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.beginPath();
+                ctx.ellipse(-s/4, -s/4, s/6, s/12, Math.PI / 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            isDead() {
+                return this.life <= 0 || this.y > CONFIG.canvasHeight + 50 || this.x < -50 || this.x > CONFIG.canvasWidth + 50;
+            }
+        }
+
+        function createPetalBurst(x, y, count = 12) {
+            const colorConfig = petalColors[Math.floor(Math.random() * petalColors.length)];
+
+            for (let i = 0; i < count; i++) {
+                const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
+                const speed = 3 + Math.random() * 5;
+                const vx = Math.cos(angle) * speed + (Math.random() - 0.5) * 3;
+                const vy = Math.sin(angle) * speed - 3 - Math.random() * 4;
+                const size = 10 + Math.random() * 15;
+
+                petals.push(new Petal(x, y, vx, vy, size, colorConfig.from, colorConfig.to));
+            }
+        }
+
+        function updatePetals() {
+            for (let i = petals.length - 1; i >= 0; i--) {
+                petals[i].update();
+                if (petals[i].isDead()) {
+                    petals.splice(i, 1);
+                }
+            }
+        }
+
+        function drawPetals() {
+            for (let petal of petals) {
+                petal.draw(ctx);
+            }
+        }
+
+        /**
+         * 创建射击箭
+         * 从底部随机位置生成一支彩色箭，飞向目标气球
+         * @param {Object} targetBalloon - 目标气球对象
+         */
+        function createArrow(targetBalloon) {
+            const arrowColors = ['#4DB6AC', '#64B5F6', '#45B7D1', '#FFEAA7', '#DDA0DD', '#FF9800', '#E91E63', '#9C27B0', '#00BCD4', '#8BC34A'];
+            const startX = CONFIG.canvasWidth / 2 + (Math.random() - 0.5) * 200;
+            const startY = CONFIG.canvasHeight - 20;
+            
+            const dx = targetBalloon.x - startX;
+            const dy = targetBalloon.y - startY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const speed = 16;
+            
+            arrows.push({
+                x: startX,
+                y: startY,
+                targetX: targetBalloon.x,
+                targetY: targetBalloon.y,
+                vx: (dx / dist) * speed,
+                vy: (dy / dist) * speed,
+                angle: Math.atan2(dy, dx),
+                color: arrowColors[Math.floor(Math.random() * arrowColors.length)],
+                size: 36,
+                balloon: targetBalloon,
+                life: 100
+            });
+            
+            playArrowSound();
+        }
+
+        function updateArrows() {
+            for (let i = arrows.length - 1; i >= 0; i--) {
+                const arrow = arrows[i];
+                arrow.x += arrow.vx;
+                arrow.y += arrow.vy;
+                arrow.angle = Math.atan2(arrow.vy, arrow.vx);
+                
+                if (Math.random() < 0.6) {
+                    for (let p = 0; p < 2; p++) {
+                        const colorConfig = petalColors[Math.floor(Math.random() * petalColors.length)];
+                        petals.push(new Petal(
+                            arrow.x - arrow.vx * 2 + (Math.random() - 0.5) * 10,
+                            arrow.y - arrow.vy * 2 + (Math.random() - 0.5) * 10,
+                            (Math.random() - 0.5) * 3,
+                            (Math.random() - 0.5) * 3 + 0.5,
+                            6 + Math.random() * 10,
+                            colorConfig.from,
+                            colorConfig.to
+                        ));
+                    }
+                }
+                
+                const dx = arrow.x - arrow.targetX;
+                const dy = arrow.y - arrow.targetY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < 20) {
+                    createPetalBurst(arrow.targetX, arrow.targetY);
+                    popBalloon(arrow.balloon);
+                    arrows.splice(i, 1);
+                }
+                
+                arrow.life--;
+                if (arrow.life <= 0) {
+                    arrows.splice(i, 1);
+                }
+            }
+        }
+
+        function drawArrows() {
+            for (let arrow of arrows) {
+                ctx.save();
+                ctx.translate(arrow.x, arrow.y);
+                ctx.rotate(arrow.angle);
+                
+                const s = arrow.size;
+                
+                ctx.fillStyle = arrow.color;
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.lineWidth = 1;
+                
+                ctx.beginPath();
+                ctx.moveTo(s * 0.5, 0);
+                ctx.lineTo(-s * 0.3, -s * 0.15);
+                ctx.lineTo(-s * 0.3, s * 0.15);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(-s * 0.3, -s * 0.08);
+                ctx.lineTo(-s * 0.8, 0);
+                ctx.lineTo(-s * 0.3, s * 0.08);
+                ctx.strokeStyle = '#8B4513';
+                ctx.lineWidth = s * 0.12;
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+        }
+
+        // ==================== 音效系统 ====================
+        
+        function playPopSound() {
+            if (!audioContext) return;
+            
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(300, audioContext.currentTime + 0.1);
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (e) {
+                console.log('Error playing sound:', e);
+            }
+        }
+
+        function playErrorSound() {
+            if (!audioContext) return;
+            
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.15);
+                
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.15);
+            } catch (e) {
+                console.log('Error playing sound:', e);
+            }
+        }
+
+        function playMissSound() {
+            if (!audioContext) return;
+            
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.3);
+                
+                gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            } catch (e) {
+                console.log('Error playing sound:', e);
+            }
+        }
+
+        function playGameOverSound() {
+            if (!audioContext) return;
+            
+            try {
+                const notes = [523, 494, 440, 349, 262];
+                notes.forEach((freq, i) => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + i * 0.15);
+                    
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime + i * 0.15);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.15 + 0.2);
+                    
+                    oscillator.start(audioContext.currentTime + i * 0.15);
+                    oscillator.stop(audioContext.currentTime + i * 0.15 + 0.2);
+                });
+            } catch (e) {
+                console.log('Error playing sound:', e);
+            }
+        }
+
+        function playArrowSound() {
+            if (!audioContext) return;
+            
+            try {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(880, audioContext.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 0.15);
+                
+                gain.gain.setValueAtTime(0.15, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + 0.15);
+            } catch (e) {
+                console.log('Error playing arrow sound:', e);
+            }
+        }
+
+        function startBGM() {
+            if (!audioContext || bgmIntervalId) return;
+            
+            bgmGainNode = audioContext.createGain();
+            bgmGainNode.connect(audioContext.destination);
+            bgmGainNode.gain.setValueAtTime(0.04, audioContext.currentTime);
+            
+            const melody = [
+                { freq: 523, dur: 0.3 }, { freq: 587, dur: 0.3 }, { freq: 659, dur: 0.3 },
+                { freq: 523, dur: 0.3 }, { freq: 659, dur: 0.3 }, { freq: 698, dur: 0.3 },
+                { freq: 784, dur: 0.6 }, { freq: 0, dur: 0.3 },
+                { freq: 784, dur: 0.3 }, { freq: 698, dur: 0.3 }, { freq: 659, dur: 0.3 },
+                { freq: 587, dur: 0.3 }, { freq: 523, dur: 0.3 }, { freq: 494, dur: 0.3 },
+                { freq: 440, dur: 0.6 }, { freq: 0, dur: 0.3 },
+                { freq: 523, dur: 0.3 }, { freq: 494, dur: 0.3 }, { freq: 440, dur: 0.3 },
+                { freq: 494, dur: 0.3 }, { freq: 523, dur: 0.3 }, { freq: 587, dur: 0.3 },
+                { freq: 659, dur: 0.3 }, { freq: 0, dur: 0.3 },
+                { freq: 659, dur: 0.3 }, { freq: 587, dur: 0.3 }, { freq: 523, dur: 0.3 },
+                { freq: 494, dur: 0.3 }, { freq: 440, dur: 0.3 }, { freq: 494, dur: 0.3 },
+                { freq: 523, dur: 0.6 }, { freq: 0, dur: 0.3 }
+            ];
+            
+            let noteIndex = 0;
+            let currentTime = audioContext.currentTime;
+            
+            function scheduleNotes() {
+                if (!gameRunning || gamePaused) return;
+                
+                while (currentTime < audioContext.currentTime + 0.5) {
+                    const note = melody[noteIndex % melody.length];
+                    if (note.freq > 0) {
+                        const osc = audioContext.createOscillator();
+                        const noteGain = audioContext.createGain();
+                        
+                        osc.connect(noteGain);
+                        noteGain.connect(bgmGainNode);
+                        
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(note.freq, currentTime);
+                        
+                        noteGain.gain.setValueAtTime(0.5, currentTime);
+                        noteGain.gain.exponentialRampToValueAtTime(0.01, currentTime + note.dur * 0.9);
+                        
+                        osc.start(currentTime);
+                        osc.stop(currentTime + note.dur);
+                    }
+                    
+                    currentTime += note.dur;
+                    noteIndex++;
+                }
+            }
+            
+            scheduleNotes();
+            bgmIntervalId = setInterval(scheduleNotes, 300);
+        }
+
+        function stopBGM() {
+            if (bgmIntervalId) {
+                clearInterval(bgmIntervalId);
+                bgmIntervalId = null;
+            }
+            if (bgmGainNode) {
+                bgmGainNode.disconnect();
+                bgmGainNode = null;
+            }
+        }
+
+        /**
+         * 使用浏览器语音合成API朗读中文
+         * female=true 时用高音调（女声，用于题目生成）
+         * female=false 时用低音调（男声，用于答案命中）
+         * @param {string} text - 要朗读的中文文本
+         * @param {boolean} female - 是否使用女声
+         */
+        function speakChinese(text, female) {
+            if (!('speechSynthesis' in window)) return;
+            
+            window.speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-CN';
+            utterance.rate = female ? 1.0 : 0.9;
+            utterance.pitch = female ? 1.8 : 0.8;
+            utterance.volume = female ? 0.7 : 0.8;
+            
+            const voices = window.speechSynthesis.getVoices();
+            const zhVoice = voices.find(v => v.lang.startsWith('zh'));
+            if (zhVoice) {
+                utterance.voice = zhVoice;
+            }
+            
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // ==================== 排行榜功能 ====================
+        
+        /**
+         * 保存本次游戏成绩到排行榜（数学游戏专用 game=math）
+         * 优先调用 Cloudflare Pages Functions API，失败时 fallback 到 localStorage
+         */
+        async function saveGameScore() {
+            if (!currentUser || currentScore === 0) return;
+            
+            const now = new Date();
+            const dateTimeStr = now.getFullYear() + '-' + 
+                String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                String(now.getDate()).padStart(2, '0') + ' ' + 
+                String(now.getHours()).padStart(2, '0') + ':' + 
+                String(now.getMinutes()).padStart(2, '0') + ':' + 
+                String(now.getSeconds()).padStart(2, '0');
+            
+            const payload = {
+                username: currentUser.username,
+                score: currentScore,
+                dateTime: dateTimeStr
+            };
+            
+            try {
+                const resp = await fetch('/api/leaderboard?game=math', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (resp.ok) {
+                    await updateLeaderboard();
+                    return;
+                }
+            } catch (e) {
+                console.warn('排行榜 API 保存失败，使用本地存储:', e);
+            }
+            
+            // Fallback: 本地存储
+            const gameScores = JSON.parse(localStorage.getItem('mathGameScores')) || [];
+            gameScores.push(payload);
+            gameScores.sort((a, b) => b.score - a.score);
+            if (gameScores.length > 20) {
+                gameScores.length = 20;
+            }
+            localStorage.setItem('mathGameScores', JSON.stringify(gameScores));
+            updateLeaderboard();
+        }
+
+        /**
+         * 更新排行榜显示（数学游戏 game=math）
+         * 优先从 API 读取，失败时 fallback 到 localStorage
+         */
+        async function updateLeaderboard() {
+            const leaderboardList = document.getElementById('leaderboardList');
+            
+            try {
+                const resp = await fetch('/api/leaderboard?game=math');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const scores = data.scores || [];
+                    
+                    leaderboardList.innerHTML = '';
+                    
+                    if (scores.length === 0) {
+                        leaderboardList.innerHTML = '<li class="leaderboard-item">暂无数据</li>';
+                        return;
+                    }
+                    
+                    const displayScores = scores.slice(0, 10);
+                    
+                    displayScores.forEach((record, index) => {
+                        const li = document.createElement('li');
+                        li.className = 'leaderboard-item';
+                        
+                        if (currentUser && record.username === currentUser.username) {
+                            li.classList.add('current-user');
+                        }
+                        
+                        li.innerHTML = `
+                            <span class="leaderboard-rank">${index + 1}</span>
+                            <span class="leaderboard-name">${record.username}<br><small style="color:#999;font-size:11px;">${record.dateTime}</small></span>
+                            <span class="leaderboard-score">${record.score}分</span>
+                        `;
+                        
+                        leaderboardList.appendChild(li);
+                    });
+                    return;
+                }
+            } catch (e) {
+                console.warn('排行榜 API 读取失败，使用本地存储:', e);
+            }
+            
+            // Fallback: 本地存储
+            updateLeaderboardFromLocalStorage();
+        }
+        
+        /**
+         * 从 localStorage 读取并更新排行榜（离线/失败时的 fallback）
+         */
+        function updateLeaderboardFromLocalStorage() {
+            const gameScores = JSON.parse(localStorage.getItem('mathGameScores')) || [];
+            
+            const bestScores = {};
+            gameScores.forEach(record => {
+                if (!bestScores[record.username] || record.score > bestScores[record.username].score) {
+                    bestScores[record.username] = record;
+                }
+            });
+            
+            const sortedScores = Object.values(bestScores).sort((a, b) => b.score - a.score);
+            
+            const leaderboardList = document.getElementById('leaderboardList');
+            leaderboardList.innerHTML = '';
+            
+            if (sortedScores.length === 0) {
+                leaderboardList.innerHTML = '<li class="leaderboard-item">暂无数据</li>';
+                return;
+            }
+            
+            const displayScores = sortedScores.slice(0, 10);
+            
+            displayScores.forEach((record, index) => {
+                const li = document.createElement('li');
+                li.className = 'leaderboard-item';
+                
+                if (currentUser && record.username === currentUser.username) {
+                    li.classList.add('current-user');
+                }
+                
+                li.innerHTML = `
+                    <span class="leaderboard-rank">${index + 1}</span>
+                    <span class="leaderboard-name">${record.username}<br><small style="color:#999;font-size:11px;">${record.dateTime}</small></span>
+                    <span class="leaderboard-score">${record.score}分</span>
+                `;
+                
+                leaderboardList.appendChild(li);
+            });
+        }
+
+        function updateBalloonCount() {
+            const countEl = document.getElementById('balloonCount');
+            if (countEl) {
+                countEl.textContent = balloons.length;
+            }
+        }
+
+        // ==================== 页面加载启动 ====================
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
