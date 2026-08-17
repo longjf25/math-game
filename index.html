@@ -172,8 +172,9 @@
         <div class="modal-content">
             <h2 class="modal-title">选择练习难度</h2>
             <p style="color: #666; margin-bottom: 15px;">请选择你要练习的口算难度：</p>
-            <div class="grade-selector" id="gradeSelector">
-                <button class="grade-btn" data-grade="easy">🟢 简单<br><small>100以内加减法</small></button>
+<div class="grade-selector" id="gradeSelector">
+                <button class="grade-btn" data-grade="super_easy">🟢 极简单<br><small>10以内加减法</small></button>
+                <button class="grade-btn" data-grade="easy">🟢 简单<br><small>20以内加减法</small></button>
                 <button class="grade-btn" data-grade="medium">🟡 中等<br><small>加减+乘法口诀</small></button>
                 <button class="grade-btn" data-grade="hard">🔴 困难<br><small>四则混合运算</small></button>
             </div>
@@ -230,10 +231,12 @@
         };
         
         // 三档难度配置：数值上限与默认运算
+        // easy/super_easy 均为加减法，limit 分别为 10 和 20
         const DIFFICULTY = {
-            easy:   { limit: 20,  defaultOps: ['add', 'sub'],         name: '简单' },
-            medium: { limit: 100, defaultOps: ['add', 'sub', 'mul'],  name: '中等' },
-            hard:   { limit: 100, defaultOps: ['add', 'sub', 'mul', 'div'], name: '困难' }
+            super_easy:   { limit: 10,  defaultOps: ['add', 'sub'],         name: '简单(10以内)' },
+            easy:     { limit: 20,  defaultOps: ['add', 'sub'],         name: '简单(20以内)' },
+            medium:   { limit: 100, defaultOps: ['add', 'sub', 'mul'],  name: '中等' },
+            hard:     { limit: 100, defaultOps: ['add', 'sub', 'mul', 'div'], name: '困难' }
         };
         
         // ==================== 全局变量 ====================
@@ -1079,7 +1082,7 @@
                 ctx.shadowOffsetY = 5;
                 
                 ctx.font = 'bold 34px Arial';
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = getTextColor(balloon.color);
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(balloon.text, x, y - 16);
@@ -1087,7 +1090,7 @@
                 ctx.shadowColor = 'transparent';
                 
                 ctx.font = 'bold 26px Arial';
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = getTextColor(balloon.color);
                 ctx.fillText('= ?', x, y + 24);
             }
         }
@@ -1108,6 +1111,24 @@
             const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
             const B = Math.max(0, (num & 0x0000FF) - amt);
             return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+        }
+        
+        /**
+         * 根据背景颜色计算最佳对比文字颜色
+         * 使用相对亮度公式: L = 0.2126 R + 0.7152 G + 0.0722 B
+         * 亮度 > 0.5 返回黑色 #000，否则返回白色 #fff
+         */
+        function getTextColor(balloonColor) {
+            const num = parseInt(balloonColor.replace('#', ''), 16);
+            const R = (num >> 16) / 255;
+            const G = ((num >> 8) & 0x00FF) / 255;
+            const B = (num & 0x0000FF) / 255;
+            // sRGB to linear conversion (简化版，足够本用途)
+            const r = R <= 0.04045 ? R / 12.92 : Math.pow((R + 0.055) / 1.055, 2.4);
+            const g = G <= 0.04045 ? G / 12.92 : Math.pow((G + 0.055) / 1.055, 2.4);
+            const b = B <= 0.04045 ? B / 12.92 : Math.pow((B + 0.055) / 1.055, 2.4);
+            const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            return luminance > 0.5 ? '#000' : '#fff';
         }
 
         function createParticles(x, y, color) {
