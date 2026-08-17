@@ -121,8 +121,8 @@
                     </div>
                     <div class="stats-item" id="speedControlRow" style="display: none;">
                         <span class="stats-label">气球速度:</span>
-                        <input type="range" id="speedSlider" min="1" max="5" step="1" value="2">
-                        <span id="speedValue">2</span>x
+                        <input type="range" id="speedSlider" min="1" max="5" step="1" value="3">
+                        <span id="speedValue">1</span>x
                     </div>
                 </div>
             </div>
@@ -421,10 +421,11 @@
             // 绑定气球速度滑块事件（10/20以内难度可控制）
             document.getElementById('speedSlider').addEventListener('input', function() {
                 const value = parseInt(this.value, 10);
-                document.getElementById('speedValue').textContent = value;
                 // 将滑块数值（1-5）转换为倍数：1=0.25x, 2=0.5x, 3=1.0x, 4=1.5x, 5=2.0x
                 const multipliers = [0.25, 0.5, 1.0, 1.5, 2.0];
                 currentSpeedMultiplier = multipliers[value - 1];
+                // 显示格式化的倍率
+                document.getElementById('speedValue').textContent = multipliers[value - 1];
             });
             
             // 检查本地存储是否有已登录用户
@@ -667,15 +668,15 @@
             const speedRow = document.getElementById('speedControlRow');
             if (selectedDifficulty === 'super_easy' || selectedDifficulty === 'easy') {
                 speedRow.style.display = 'block';
-                // 10/20以内设置为正常速度（滑块值2=1.0x）
+                // 10/20以内使用滑块控制速度（滑块值3对应1.0x）
                 currentSpeedMultiplier = 1;
-                document.getElementById('speedSlider').value = 2;
-                document.getElementById('speedValue').textContent = 2;
+                document.getElementById('speedSlider').value = 3;
+                document.getElementById('speedValue').textContent = '1';
             } else {
                 speedRow.style.display = 'none';
                 currentSpeedMultiplier = 1;
-                document.getElementById('speedSlider').value = 2;
-                document.getElementById('speedValue').textContent = 2;
+                document.getElementById('speedSlider').value = 3;
+                document.getElementById('speedValue').textContent = '1';
             }
             
             resetGameState();
