@@ -782,7 +782,7 @@
             
             const x = 50 + Math.random() * (CONFIG.canvasWidth - 100);
             const baseSpeed = CONFIG.initialSpeed + (currentSpeedLevel - 1) * CONFIG.speedIncrement;
-            const speed = (baseSpeed + Math.random() * 0.3) * currentSpeedMultiplier;
+            const speed = baseSpeed + Math.random() * 0.3;
             const color = CONFIG.colors[Math.floor(Math.random() * CONFIG.colors.length)];
             
             // 气球半径：根据算式长度适当增大
@@ -1019,7 +1019,7 @@
 
         function updateBalloons() {
             for (let i = balloons.length - 1; i >= 0; i--) {
-                balloons[i].y += balloons[i].speed;
+                balloons[i].y += balloons[i].speed * currentSpeedMultiplier;
                 
                 if (balloons[i].y > CONFIG.canvasHeight + 50) {
                     const escapedBalloon = balloons[i];
